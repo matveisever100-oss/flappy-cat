@@ -2,353 +2,166 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Flappy Cat — исправлено</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover" />
+<title>Flappy Cat Mobile v2 — Ninja</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#12041a">
 <style>
-  :root{
-    --bg:#a8e6ff;
-    --ground:#d2b48c;
-    --pipe:#2e8b57;
-    --font: "Segoe UI", Roboto, "Helvetica Neue", Arial;
-  }
-  html,body{height:100%; margin:0; background:var(--bg); font-family:var(--font);}
-  .wrap{height:100%; display:flex; align-items:center; justify-content:center; padding:20px;}
-  canvas{background:linear-gradient(#b8f0ff,#70c5ce); border-radius:12px; box-shadow:0 8px 30px rgba(0,0,0,0.25); touch-action:none;}
-  .overlay{position:fixed; left:20px; top:20px; color:#023; text-shadow:0 1px 0 #fff7;}
-  .hint{position:fixed; right:20px; top:20px; background:rgba(255,255,255,0.6); padding:6px 10px; border-radius:8px;}
-  .levelselect{
-    position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);
-    background:#fff; padding:20px 24px; border-radius:16px; box-shadow:0 6px 30px rgba(0,0,0,0.3);
-    text-align:center; font-size:18px; display:none;
-  }
-  .levelselect button{
-    margin:6px; padding:10px 18px; border:none; border-radius:10px; cursor:pointer; font-size:16px;
-    background:#70c5ce; color:#fff; box-shadow:0 3px 8px rgba(0,0,0,0.25);
-  }
-  .levelselect button:hover{background:#5eb0b9;}
-  .credits{position:fixed; left:20px; bottom:14px; color:#033; opacity:0.8; font-size:13px;}
+:root{--accent:#ffd700;--muted:#bbc;--font:Inter,system-ui,Segoe UI,Roboto,Arial;}
+html,body{height:100%;margin:0;font-family:var(--font);-webkit-text-size-adjust:none;background:#070015;color:#fff;overflow:hidden}
+#app{width:100vw;height:100vh;display:flex;align-items:center;justify-content:center}
+canvas{width:100vw;height:100vh;display:block;background:linear-gradient(#11021a,#2b0f2f);touch-action:none}
+.ui{position:fixed;left:10px;top:10px;z-index:40;display:flex;gap:8px;align-items:center}
+.score{background:rgba(255,255,255,0.06);padding:7px 10px;border-radius:10px;font-weight:700;font-size:14px}
+.controls{position:fixed;right:10px;top:10px;display:flex;gap:8px;z-index:40}
+.btn{background:rgba(255,255,255,0.06);border:0;padding:8px 10px;border-radius:9px;color:#fff;font-weight:700;font-size:14px}
+.menu{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:50;background:linear-gradient(#14051a,#1b0726);padding:16px;border-radius:12px;text-align:center;min-width:280px}
+.menu h1{margin:6px 0 8px 0;font-size:20px}
+.small{font-size:13px;color:var(--muted);margin-top:8px}
+.flex{display:flex;gap:8px;justify-content:center;margin:10px 0}
+.footer{position:fixed;left:10px;bottom:8px;color:var(--muted);font-size:12px;z-index:30}
+@media(min-width:700px){ canvas{height:720px;width:400px;border-radius:12px} }
 </style>
 </head>
 <body>
-<div class="wrap"><canvas id="game"></canvas></div>
-<div class="overlay" id="scoreOverlay">Счёт: 0 · Рекорд: 0</div>
-<div class="hint">Пробел / клик / тап — подпрыгнуть</div>
-<div class="credits">Flappy Cat 🐾 — исправленная версия</div>
+<div id="app"><canvas id="game"></canvas></div>
+<div class="ui"><div class="score" id="scoreBox">Счёт: 0 · Рекорд: 0</div><div class="score" id="coinsBox" style="margin-left:8px">Монеты: 0</div></div>
+<div class="controls"><button class="btn" id="soundBtn">🔊</button><button class="btn" id="pauseBtn">⏸</button></div>
 
-<div class="levelselect" id="levelMenu">
-  <h3>Выбери уровень сложности</h3>
-  <button data-level="easy">Лёгкий</button>
-  <button data-level="medium">Средний</button>
-  <button data-level="hard">Сложный</button>
+<div class="menu" id="startMenu">
+  <h1>Flappy Cat v2 — Mobile</h1>
+  <p>Ниндзя-кот. Вертикальная версия, оптимизирована для телефонов.</p>
+  <div class="flex">
+    <button class="btn levelBtn" data-level="easy">Лёгкий</button>
+    <button class="btn levelBtn" data-level="medium">Средний</button>
+    <button class="btn levelBtn" data-level="hard">Сложный</button>
+  </div>
+  <div style="margin:8px 0"><label>Мир: <select id="worldSelect"><option value="day">День</option><option value="night" selected>Ночь</option><option value="winter">Зима</option><option value="desert">Пустыня</option><option value="space">Космос</option></select></label></div>
+  <div style="margin:8px 0"><label><input type="checkbox" id="vibrateToggle" checked/> Вибрация</label></div>
+  <button class="btn" id="startBtn" style="background:var(--accent);color:#111;padding:10px 14px">Играть</button>
+  <div class="small">Тапни экран, чтобы подпрыгнуть. Игра ориентирована на смартфоны.</div>
 </div>
 
+<div class="menu" id="gameOverMenu" style="display:none">
+  <h1 id="goTitle">Мяу! Игра окончена</h1>
+  <p id="goScore">Счёт: 0 · Рекорд: 0</p>
+  <div class="flex"><button class="btn" id="retryBtn">Играть снова</button><button class="btn" id="menuBtn">В меню</button></div>
+</div>
+
+<div class="footer">Flappy Cat Mobile v2 — динамический день/ночь и вибрация</div>
+
 <script>
-/* ---------------- Настройки ---------------- */
-const CONFIG = {
-  width:480,
-  heightRatio:1.6,
-  gravity:1200,
-  flapSpeed:-360,
-  pipeSpeed:160,
-  pipeGap:140,
-  pipeInterval:1400,
-  pipeWidth:72,
-  groundHeight:90,
-  catSize:28,
-};
-const LEVELS = {
-  easy:   {speed:160, gap:160, gravity:1100, label:"Лёгкий"},
-  medium: {speed:190, gap:130, gravity:1250, label:"Средний"},
-  hard:   {speed:230, gap:110, gravity:1400, label:"Сложный"},
+'use strict';
+// Mobile-optimized Flappy Cat v2 — vertical-only, vibration and dynamic day/night
+
+// Configuration
+const CONFIG = { width: 360, heightRatio: 1.85, gravity:1100, flapSpeed:-360, pipeSpeed:150, pipeGap:140, pipeInterval:1350, pipeWidth:68, groundHeight:76, catSize:28 };
+const LEVELS = { easy:{speed:140,gap:160,gravity:1000,label:"Лёгкий"}, medium:{speed:150,gap:140,gravity:1100,label:"Средний"}, hard:{speed:180,gap:120,gravity:1250,label:"Сложный"} };
+const WORLDS = {
+  day:   {label:"День", colors:["#cdefff","#8ed6ff"]},
+  night: {label:"Ночь", colors:["#04031a","#0a043c"]},
+  winter:{label:"Зима", colors:["#e6f7ff","#cde7ff"]},
+  desert:{label:"Пустыня", colors:["#fff0cc","#ffd280"]},
+  space: {label:"Космос", colors:["#020017","#10002b"]}
 };
 
-/* ---------------- Canvas ---------------- */
+// State & persistence
+const STORAGE_KEY = 'flappycat_mobile_v2';
+let state = { best:0, score:0, coins:0, currentWorld:'night', currentLevelKey:'medium', vibrate:true, leaderboard:[] };
+try{ const s = JSON.parse(localStorage.getItem(STORAGE_KEY)); if(s) Object.assign(state,s); }catch(e){}
+
+// Canvas & DPR (clamped for mobile)
 const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d', { alpha:false });
-let DPR = Math.max(1, window.devicePixelRatio || 1);
-function resizeCanvas(){
-  const maxW = Math.min(window.innerWidth - 40, 900);
-  const W = Math.max(320, maxW);
-  const H = Math.round(W * CONFIG.heightRatio);
-  canvas.style.width = W + "px";
-  canvas.style.height = H + "px";
-  canvas.width = Math.round(W * DPR);
-  canvas.height = Math.round(H * DPR);
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-}
-resizeCanvas();
-window.addEventListener('resize', resizeCanvas);
+const ctx = canvas.getContext('2d');
+let DPR = Math.min(1.5, Math.max(1, window.devicePixelRatio || 1));
+function resize(){ const vw = Math.min(window.innerWidth, 420); const H = Math.round(vw * CONFIG.heightRatio); canvas.style.width = vw + 'px'; canvas.style.height = H + 'px'; canvas.width = Math.round(vw * DPR); canvas.height = Math.round(H * DPR); ctx.setTransform(DPR,0,0,DPR,0,0); }
+resize(); window.addEventListener('resize', resize);
 
-/* ---------------- Утилиты рисования ---------------- */
-function roundRectPath(ctx, x, y, w, h, r){
-  // r может быть число или объект; упростим: число радиуса
-  if (r < 0) r = 0;
-  const radius = Math.min(r, w/2, h/2);
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.lineTo(x + w - radius, y);
-  ctx.arcTo(x + w, y, x + w, y + radius, radius);
-  ctx.lineTo(x + w, y + h - radius);
-  ctx.arcTo(x + w, y + h, x + w - radius, y + h, radius);
-  ctx.lineTo(x + radius, y + h);
-  ctx.arcTo(x, y + h, x, y + h - radius, radius);
-  ctx.lineTo(x, y + radius);
-  ctx.arcTo(x, y, x + radius, y, radius);
-  ctx.closePath();
-}
+// Audio minimal
+let audioCtx = null; let soundEnabled = true;
+function ensureAudio(){ if(!audioCtx && (window.AudioContext || window.webkitAudioContext)) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+function beep(freq=440,dur=0.06){ if(!soundEnabled) return; ensureAudio(); if(!audioCtx) return; const o=audioCtx.createOscillator(), g=audioCtx.createGain(); o.type='sine'; o.frequency.value=freq; g.gain.value=0.05; o.connect(g); g.connect(audioCtx.destination); o.start(); g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+dur); o.stop(audioCtx.currentTime+dur+0.02); }
+function vibrate(pattern){ try{ if(state.vibrate && navigator.vibrate) navigator.vibrate(pattern); }catch(e){} }
 
-/* ---------------- Audio ---------------- */
-const AudioCtx = window.AudioContext || window.webkitAudioContext;
-let audioCtx;
-function beep(freq=440, dur=0.06, type='sine', vol=0.08){
-  if(!AudioCtx) return;
-  if(!audioCtx) audioCtx = new AudioCtx();
-  const o = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
-  o.type = type; o.frequency.value = freq;
-  g.gain.value = vol; o.connect(g); g.connect(audioCtx.destination);
-  o.start();
-  g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
-  o.stop(audioCtx.currentTime + dur + 0.02);
-}
+// Helpers
+const rand=(a,b)=>Math.random()*(b-a)+a;
+function roundRect(ctx,x,y,w,h,r){ ctx.beginPath(); const R=Math.min(r,Math.abs(w/2),Math.abs(h/2)); ctx.moveTo(x+R,y); ctx.lineTo(x+w-R,y); ctx.arcTo(x+w,y,x+w,y+R,R); ctx.lineTo(x+w,y+h-R); ctx.arcTo(x+w,y+h,x+w-R,y+h,R); ctx.lineTo(x+R,y+h); ctx.arcTo(x,y+h,x,y+h-R,R); ctx.lineTo(x,y+R); ctx.arcTo(x,y,x+R,y,R); ctx.closePath(); }
 
-/* ---------------- Сущности: кот и трубы ---------------- */
-class Cat {
-  constructor(x,y){ this.x = x; this.y = y; this.vy = 0; }
-  flap(){ this.vy = CONFIG.flapSpeed; beep(880, 0.05, 'triangle', 0.06); }
-  update(dt){ this.vy += CONFIG.gravity * dt; this.y += this.vy * dt; }
-  draw(ctx){
-    const s = CONFIG.catSize;
-    ctx.save();
-    ctx.translate(this.x, this.y);
-    ctx.rotate(Math.max(-0.5, Math.min(0.8, this.vy / 700)));
-    // тело (скруглённый прямоугольник)
-    ctx.fillStyle = "#FFD599";
-    ctx.strokeStyle = "#b0702d";
-    ctx.lineWidth = 2;
-    roundRectPath(ctx, -s/1.2, -s/1.3, s*1.6, s*1.4, 8);
-    ctx.fill(); ctx.stroke();
-    // ушки
-    ctx.beginPath();
-    ctx.moveTo(-s*0.6,-s*0.9);
-    ctx.lineTo(-s*0.2,-s*1.5);
-    ctx.lineTo(s*0.1,-s*0.9);
-    ctx.closePath();
-    ctx.fillStyle = "#ffb347"; ctx.fill(); ctx.stroke();
-    // глаза
-    ctx.fillStyle = "#333";
-    ctx.beginPath(); ctx.arc(s*0.4, -s*0.3, 3, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(s*0.7, -s*0.3, 3, 0, Math.PI*2); ctx.fill();
-    // хвост (простая кривая)
-    ctx.beginPath();
-    ctx.strokeStyle = "#cc7b3a";
-    ctx.lineWidth = 5;
-    ctx.moveTo(-s*0.9, s*0.2);
-    ctx.quadraticCurveTo(-s*1.3, s*0.1, -s*1.4, s*0.6);
-    ctx.stroke();
-    ctx.restore();
-  }
-  getBounds(){ return { x: this.x, y: this.y, r: CONFIG.catSize * 0.8 }; }
+// Entities
+class Cat{ constructor(x,y){ this.x=x; this.y=y; this.vy=0; this.rot=0; } flap(){ this.vy=CONFIG.flapSpeed; beep(880,0.06); vibrate(20); } update(dt){ this.vy += CONFIG.gravity*dt; this.y += this.vy*dt; this.rot = Math.max(-0.8, Math.min(1.2, this.vy/700)); } draw(ctx){ const s=CONFIG.catSize; ctx.save(); ctx.translate(this.x,this.y); ctx.rotate(this.rot); ctx.fillStyle='#111'; roundRect(ctx,-s/1.2,-s/1.3,s*1.6,s*1.4,8); ctx.fill(); ctx.fillStyle='#ffd700'; ctx.fillRect(-s*0.2,-s*0.45,s*0.6,4); ctx.fillStyle='#111'; ctx.beginPath(); ctx.arc(s*0.35,-s*0.28,3,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(s*0.7,-s*0.28,3,0,Math.PI*2); ctx.fill(); ctx.restore(); } getBounds(){ return {x:this.x,y:this.y,r:CONFIG.catSize*0.8}; } }
+class Pipe{ constructor(x,top,gap,w){ this.x=x; this.top=top; this.gap=gap; this.w=w; this.passed=false; } update(dt){ this.x -= CONFIG.pipeSpeed*dt; } draw(ctx,H){ ctx.fillStyle='#2e8b57'; ctx.fillRect(this.x,0,this.w,this.top); const by=this.top+this.gap; ctx.fillRect(this.x,by,this.w,H-by-CONFIG.groundHeight); } collides(cat){ const c=cat.getBounds(); if(c.x+c.r>this.x && c.x-c.r < this.x+this.w){ if(c.y-c.r < this.top || c.y+c.r > this.top+this.gap) return true; } return false; } }
+class Coin{ constructor(x,y){ this.x=x; this.y=y; this.r=8; this.collected=false; this.wob=rand(0,Math.PI*2); } update(dt){ this.wob += dt*6; this.y += Math.sin(this.wob)*0.3; } draw(ctx){ ctx.save(); ctx.translate(this.x,this.y); ctx.beginPath(); ctx.fillStyle='#ffd700'; ctx.arc(0,0,this.r,0,Math.PI*2); ctx.fill(); ctx.restore(); } collides(cat){ const c=cat.getBounds(); const dx=c.x-this.x, dy=c.y-this.y; return (dx*dx+dy*dy) <= ((c.r+this.r)*(c.r+this.r)); } }
+
+// Particles (reduced count on lower FPS)
+let particles=[];
+function spawnParticles(x,y,color,n=10){ for(let i=0;i<n;i++){ particles.push({x:x,y:y,vx:rand(-1,1)*(1+rand(0,1.5)),vy:rand(-1,1)*(1+rand(0,1.5)),life:0.4+Math.random()*0.6,size:rand(1,3),color:color||'#fff'}); } }
+function updateParticles(dt){ particles = particles.filter(p=>p.life>0); particles.forEach(p=>{ p.life -= dt; p.vy += 700*dt; p.x += p.vx; p.y += p.vy; }); }
+function drawParticles(ctx){ particles.forEach(p=>{ ctx.globalAlpha = Math.max(0,p.life/0.8); ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,Math.PI*2); ctx.fill(); ctx.globalAlpha = 1; }); }
+
+// Game variables
+let cat=null, pipes=[], coins=[], lastPipe=0, running=false, paused=false, gameOver=false;
+let lastTs = performance.now(), fpsAvg = 60;
+
+// UI elements
+const startMenu = document.getElementById('startMenu'), startBtn=document.getElementById('startBtn'), pauseBtn=document.getElementById('pauseBtn'), soundBtn=document.getElementById('soundBtn'), worldSelect=document.getElementById('worldSelect'), scoreBox=document.getElementById('scoreBox'), coinsBox=document.getElementById('coinsBox'), gameOverMenu=document.getElementById('gameOverMenu'), goScore=document.getElementById('goScore'), vibrateToggle=document.getElementById('vibrateToggle');
+
+// UI functions
+function saveState(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){} }
+function updateUI(){ scoreBox.textContent = `Счёт: ${state.score} · Рекорд: ${state.best}`; coinsBox.textContent = `Монеты: ${state.coins}`; }
+function addToLeaderboard(score){ state.leaderboard.push({score:score,date:new Date().toISOString(),world:state.currentWorld}); state.leaderboard.sort((a,b)=>b.score-a.score); if(state.leaderboard.length>5) state.leaderboard.length=5; saveState(); }
+
+// Spawning helpers
+function spawnPipe(){ const H = canvas.clientHeight; const minTop=36; const maxTop=Math.max(minTop+10, H-CONFIG.groundHeight-CONFIG.pipeGap-60); const top=Math.floor(minTop + Math.random()*Math.max(0, maxTop-minTop)); pipes.push(new Pipe(canvas.clientWidth+10, top, CONFIG.pipeGap, CONFIG.pipeWidth)); }
+function spawnCoin(x){ const H = canvas.clientHeight; const y = rand(80, H-CONFIG.groundHeight-50); coins.push(new Coin(x,y)); }
+function checkCollision(){ const H = canvas.clientHeight; if(!cat) return false; if(cat.y + CONFIG.catSize/1.3 >= H-CONFIG.groundHeight) return true; if(cat.y - CONFIG.catSize/1.3 <= 0) return true; for(const p of pipes) if(p.collides(cat)) return true; return false; }
+
+// Background draw with dynamic day/night based on device time
+function getAutoWorld(){ try{ const h = new Date().getHours(); if(h>=6 && h<18) return 'day'; return 'night'; }catch(e){ return state.currentWorld||'night'; } }
+function drawBackground(ctx){ const W=canvas.clientWidth, H=canvas.clientHeight; const worldKey = (state.currentWorld === 'auto') ? getAutoWorld() : state.currentWorld; const world = WORLDS[worldKey]||WORLDS.night; const colors = world.colors; const g = ctx.createLinearGradient(0,0,0,H); g.addColorStop(0, colors[0]); g.addColorStop(1, colors[1]); ctx.fillStyle = g; ctx.fillRect(0,0,W,H); // subtle stars at night
+  if(worldKey==='night' || worldKey==='space'){ if(worldKey==='night'){ ctx.fillStyle='rgba(255,255,255,0.03)'; for(let i=0;i<40;i++){ const sx = (i*73 + (performance.now()/50)%900) % W; const sy = (i*37 + (performance.now()/80)%H) % (H*0.6); ctx.fillRect(sx,sy,1.5,1.5); } } if(worldKey==='space'){ ctx.fillStyle='rgba(255,255,255,0.06)'; for(let i=0;i<80;i++){ const sx = (i*53 + (performance.now()/30)%900) % W; const sy = (i*71 + (performance.now()/70)%H) % H; ctx.fillRect(sx,sy,1.2,1.2); } } }
+  // moving clouds for non-space
+  if(worldKey !== 'space'){ ctx.fillStyle='rgba(255,255,255,0.04)'; for(let i=0;i<6;i++){ const x = (i*150 + (performance.now()/30)) % (W+200) - 100; const y = 30 + (i*20) % (H*0.3); ctx.beginPath(); ctx.ellipse(x,y,40,22,0,0,Math.PI*2); ctx.fill(); } }
 }
 
-class Pipe {
-  constructor(x, top, gap, w){ this.x = x; this.top = top; this.gap = gap; this.w = w; this.passed = false; }
-  update(dt){ this.x -= CONFIG.pipeSpeed * dt; }
-  draw(ctx, H){
-    ctx.fillStyle = "#2e8b57";
-    ctx.fillRect(this.x, 0, this.w, this.top);
-    const bottomY = this.top + this.gap;
-    ctx.fillRect(this.x, bottomY, this.w, H - bottomY - CONFIG.groundHeight);
-    // лёгкая тень
-    ctx.fillStyle = 'rgba(0,0,0,0.06)';
-    ctx.fillRect(this.x, Math.max(0, this.top - 8), this.w, 8);
-  }
-  collides(cat){
-    const c = cat.getBounds();
-    if (c.x + c.r > this.x && c.x - c.r < this.x + this.w){
-      if (c.y - c.r < this.top || c.y + c.r > this.top + this.gap) return true;
-    }
-    return false;
-  }
-}
+// Ground draw
+function drawGround(ctx){ const W=canvas.clientWidth, H=canvas.clientHeight, gy=H-CONFIG.groundHeight; ctx.fillStyle='#1e1616'; ctx.fillRect(0,gy,W,CONFIG.groundHeight); }
 
-/* ---------------- Глобальные переменные ---------------- */
-let cat, pipes = [], lastPipe = 0, running = false, gameOver = false;
-let score = 0, best = parseInt(localStorage.getItem('flappycat_best') || '0', 10);
-let currentLevel = LEVELS.easy;
-const scoreOverlay = document.getElementById('scoreOverlay');
-const levelMenu = document.getElementById('levelMenu');
+// Main loop with FPS adapt (reduce particles on low FPS)
+function loop(ts){ const dt = Math.min(0.04, (ts - lastTs)/1000); lastTs = ts; // fps average
+  const instFps = 1/Math.max(0.0001, dt); fpsAvg = fpsAvg*0.96 + instFps*0.04;
+  const particleBudget = fpsAvg < 30 ? 4 : (fpsAvg < 45 ? 8 : 16);
 
-function updateOverlay(){ scoreOverlay.textContent = `Счёт: ${score} · Рекорд: ${best} (${currentLevel.label})`; }
+  if(running && !paused){ if(cat) cat.update(dt); if(ts - lastPipe > CONFIG.pipeInterval){ spawnPipe(); if(Math.random()<0.6) spawnCoin(canvas.clientWidth+10+rand(20,120)); lastPipe = ts; } pipes.forEach(p=>p.update(dt)); pipes = pipes.filter(p=>p.x + p.w > -40); coins.forEach(c=>c.update(dt)); coins = coins.filter(c=>!c.collected && c.x > -40); coins.forEach(c=> c.x -= CONFIG.pipeSpeed*dt); pipes.forEach(p=>{ if(!p.passed && cat && cat.x > p.x + p.w){ p.passed = true; state.score += 1; beep(900); if(state.score > state.best) state.best = state.score; if(state.score % 10 === 0){ CONFIG.pipeSpeed += 6; beep(1000); } updateUI(); } }); for(const c of coins){ if(!c.collected && cat && c.collides(cat)){ c.collected = true; state.coins += 1; state.score += 3; spawnParticles(c.x,c.y,'#ffd700', Math.min(12, particleBudget)); beep(1200); vibrate(30); updateUI(); saveState(); } } updateParticles(dt); if(checkCollision()){ spawnParticles(cat.x,cat.y,'#ff7b7b', Math.min(22, particleBudget*2)); beep(160); vibrate(200); running=false; gameOver=true; setTimeout(()=>{ addToLeaderboard(state.score); if(state.score > state.best) state.best = state.score; saveState(); showGameOver(); }, 450); } }
+  ctx.clearRect(0,0,canvas.clientWidth,canvas.clientHeight); drawBackground(ctx); pipes.forEach(p=>p.draw(ctx,canvas.clientHeight)); coins.forEach(c=>c.draw(ctx)); if(cat) cat.draw(ctx); drawGround(ctx); drawParticles(ctx); requestAnimationFrame(loop); }
 
-/* ---------------- Инициализация / генерация труб ---------------- */
-function resetGame(){
-  const W = canvas.clientWidth, H = canvas.clientHeight;
-  cat = new Cat(W * 0.25, H * 0.5);
-  pipes = [];
-  lastPipe = performance.now();
-  running = true;
-  gameOver = false;
-  score = 0;
-  // применить параметры уровня в CONFIG (гарантируем значения)
-  CONFIG.pipeSpeed = currentLevel.speed;
-  CONFIG.gravity = currentLevel.gravity;
-  CONFIG.pipeGap = currentLevel.gap;
-  updateOverlay();
-}
+// Input handlers: tap to flap/start
+function doFlapOrStart(){ if(!running && !gameOver){ if(startMenu.style.display !== 'none') return; running=true; cat && cat.flap(); return; } if(running && !paused && !gameOver){ cat && cat.flap(); } if(gameOver){ showStartMenu(); gameOver=false; } }
 
-function spawnPipe(){
-  const H = canvas.clientHeight;
-  const minTop = 40;
-  // безопасный максимум: не допустить отрицательный диапазон
-  const maxTop = Math.max(minTop + 10, H - CONFIG.groundHeight - CONFIG.pipeGap - 80);
-  const top = Math.floor(minTop + Math.random() * Math.max(0, maxTop - minTop));
-  pipes.push(new Pipe(canvas.clientWidth + 10, top, CONFIG.pipeGap, CONFIG.pipeWidth));
-}
+window.addEventListener('keydown', e=>{ if(e.code==='Space'){ e.preventDefault(); if(!audioCtx) ensureAudio(); if(audioCtx && audioCtx.state==='suspended') audioCtx.resume().catch(()=>{}); doFlapOrStart(); } });
+canvas.addEventListener('mousedown', ()=>{ if(!audioCtx) ensureAudio(); if(audioCtx && audioCtx.state==='suspended') audioCtx.resume().catch(()=>{}); doFlapOrStart(); });
+canvas.addEventListener('touchstart', e=>{ e.preventDefault(); if(!audioCtx) ensureAudio(); if(audioCtx && audioCtx.state==='suspended') audioCtx.resume().catch(()=>{}); doFlapOrStart(); }, {passive:false});
 
-/* ---------------- Столкновения ---------------- */
-function checkCollision(){
-  const H = canvas.clientHeight;
-  if (cat.y + CONFIG.catSize / 1.3 >= H - CONFIG.groundHeight) return true;
-  if (cat.y - CONFIG.catSize / 1.3 <= 0) return true;
-  for (const p of pipes) if (p.collides(cat)) return true;
-  return false;
-}
+// UI wiring
+startBtn.onclick = ()=>{ hideMenus(); resetForPlay(); running=true; };
+document.querySelectorAll('.levelBtn').forEach(b=> b.onclick = ()=>{ const k=b.dataset.level; state.currentLevelKey=k; CONFIG.pipeSpeed=LEVELS[k].speed; CONFIG.gravity=LEVELS[k].gravity; CONFIG.pipeGap=LEVELS[k].gap; updateUI(); saveState(); });
+worldSelect.onchange = ()=>{ state.currentWorld = worldSelect.value; saveState(); updateUI(); };
+pauseBtn.onclick = ()=>{ if(!running) return; paused = !paused; pauseBtn.textContent = paused ? '▶️' : '⏸'; };
+soundBtn.onclick = ()=>{ soundEnabled = !soundEnabled; soundBtn.textContent = soundEnabled ? '🔊' : '🔈'; if(soundEnabled) ensureAudio(); else if(audioCtx) audioCtx.suspend(); };
+vibrateToggle.addEventListener('change', ()=>{ state.vibrate = vibrateToggle.checked; saveState(); });
 
-/* ---------------- Рендер ---------------- */
-function drawBackground(ctx){
-  const W = canvas.clientWidth, H = canvas.clientHeight;
-  const g = ctx.createLinearGradient(0,0,0,H);
-  g.addColorStop(0,'#b8f0ff'); g.addColorStop(1,'#70c5ce');
-  ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
-}
-function drawGround(ctx){
-  const W = canvas.clientWidth, H = canvas.clientHeight;
-  ctx.fillStyle = "#d2b48c";
-  ctx.fillRect(0, H - CONFIG.groundHeight, W, CONFIG.groundHeight);
-}
-function drawUI(ctx){
-  if (!running && !gameOver){
-    ctx.save();
-    ctx.fillStyle = "rgba(255,255,255,0.95)";
-    ctx.font = "20px sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("Кликните / пробел чтобы начать", canvas.clientWidth/2, canvas.clientHeight*0.5);
-    ctx.restore();
-  }
-  if (gameOver){
-    ctx.save();
-    ctx.fillStyle = "rgba(0,0,0,0.6)";
-    ctx.fillRect(0,0,canvas.clientWidth,canvas.clientHeight);
-    ctx.fillStyle = "#fff";
-    ctx.textAlign = "center";
-    ctx.font = "bold 42px system-ui";
-    ctx.fillText("Мяу! Игра окончена", canvas.clientWidth/2, canvas.clientHeight*0.4);
-    ctx.font = "20px system-ui";
-    ctx.fillText(`Счёт: ${score} · Рекорд: ${best}`, canvas.clientWidth/2, canvas.clientHeight*0.5);
-    ctx.fillText("Пробел / клик — заново", canvas.clientWidth/2, canvas.clientHeight*0.62);
-    ctx.restore();
-  }
-}
+// Reset and menus
+function resetForPlay(){ const W=canvas.clientWidth, H=canvas.clientHeight; state.score=0; coins=[]; pipes=[]; particles=[]; cat=new Cat(Math.round(W*0.28), Math.round(H*0.5)); CONFIG.pipeSpeed = LEVELS[state.currentLevelKey].speed; CONFIG.gravity = LEVELS[state.currentLevelKey].gravity; CONFIG.pipeGap = LEVELS[state.currentLevelKey].gap; updateUI(); lastPipe = performance.now(); saveState(); }
+function showStartMenu(){ startMenu.style.display='block'; gameOverMenu.style.display='none'; paused=false; running=false; }
+function showGameOver(){ document.getElementById('goScore').textContent = `Счёт: ${state.score} · Рекорд: ${state.best}`; gameOverMenu.style.display='block'; startMenu.style.display='none'; }
+function hideMenus(){ startMenu.style.display='none'; gameOverMenu.style.display='none'; }
 
-/* ---------------- Цикл ---------------- */
-let last = performance.now();
-function loop(ts){
-  const dt = Math.min(0.033, (ts - last) / 1000);
-  last = ts;
-
-  if (running){
-    cat.update(dt);
-
-    if (ts - lastPipe > CONFIG.pipeInterval){
-      spawnPipe();
-      lastPipe = ts;
-    }
-
-    pipes.forEach(p => p.update(dt));
-    pipes = pipes.filter(p => p.x + p.w > -20);
-
-    pipes.forEach(p => {
-      if (!p.passed && cat.x > p.x + p.w){
-        p.passed = true;
-        score++;
-        beep(1200 - Math.min(600, score * 10), 0.03, 'sine', 0.05);
-        if (score > best){ best = score; localStorage.setItem('flappycat_best', String(best)); }
-        // плавное увеличение скорости по счёту (не ломает базовую скорость уровня)
-        CONFIG.pipeSpeed = currentLevel.speed + score * 3;
-        updateOverlay();
-      }
-    });
-
-    if (checkCollision()){
-      running = false;
-      gameOver = true;
-      beep(200, 0.28, 'sawtooth', 0.15);
-    }
-  }
-
-  ctx.clearRect(0,0,canvas.clientWidth,canvas.clientHeight);
-  drawBackground(ctx);
-  pipes.forEach(p => p.draw(ctx, canvas.clientHeight));
-  if (cat) cat.draw(ctx);
-  drawGround(ctx);
-  drawUI(ctx);
-
-  requestAnimationFrame(loop);
-}
-
-/* ---------------- Ввод ---------------- */
-function doFlapOrStart(){
-  // разблокировка звука для некоторых браузеров
-  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(()=>{});
-  if (!running && !gameOver){
-    running = true;
-    cat && cat.flap();
-    return;
-  }
-  if (running && !gameOver){
-    cat && cat.flap();
-  } else if (gameOver){
-    // при gameOver показать меню выбора уровня (рестарт через выбор уровня)
-    showLevelMenu();
-  }
-}
-
-window.addEventListener('keydown', e => {
-  if (e.code === 'Space') { e.preventDefault(); doFlapOrStart(); }
-});
-canvas.addEventListener('mousedown', () => doFlapOrStart());
-canvas.addEventListener('touchstart', e => { e.preventDefault(); doFlapOrStart(); }, { passive: false });
-
-// разблокировка звука при первом клике (политика автопроигрыша)
-document.body.addEventListener('click', function unlockAudio(){
-  if (!audioCtx && AudioCtx) audioCtx = new AudioCtx();
-  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(()=>{});
-  document.body.removeEventListener('click', unlockAudio);
-});
-
-/* ---------------- Меню уровней ---------------- */
-function showLevelMenu(){
-  running = false; gameOver = false;
-  levelMenu.style.display = 'block';
-}
-levelMenu.querySelectorAll('button').forEach(btn => {
-  btn.onclick = () => {
-    const key = btn.dataset.level;
-    if (!LEVELS[key]) return;
-    currentLevel = LEVELS[key];
-    CONFIG.pipeSpeed = currentLevel.speed;
-    CONFIG.gravity = currentLevel.gravity;
-    CONFIG.pipeGap = currentLevel.gap;
-    levelMenu.style.display = 'none';
-    resetGame();
-  };
-});
-
-/* ---------------- Старт ---------------- */
-updateOverlay();
-showLevelMenu();
-requestAnimationFrame(loop);
+// Initialize defaults and start loop
+if(!state.currentWorld) state.currentWorld='night';
+if(!state.currentLevelKey) state.currentLevelKey='medium';
+if(state.vibrate===undefined) state.vibrate=true;
+document.getElementById('worldSelect').value = state.currentWorld;
+document.getElementById('vibrateToggle').checked = !!state.vibrate;
+updateUI(); showStartMenu(); requestAnimationFrame(loop);
 </script>
 </body>
 </html>
